@@ -10,34 +10,28 @@
     />
   </head>
   <body>
+    <div class="custom-header">
+      <div class="header-left">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="University Logo" class="header-logo">
+        <div class="header-text">
+          <div class="header-title">South Eastern University of Sri Lanka</div>
+          <div class="header-si">ශ්‍රී ලංකා අග්නිදිග විශ්වවිද්‍යාලය</div>
+          <div class="header-ta">இலங்கை தென்கிழக்கு பல்கலைக்கழகம்</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <img src="{{ url_for('static', filename='images/face1.png') }}" alt="Face Icon" class="header-face-icon">
+        <div class="header-system">Face Recognition Attendance System</div>
+      </div>
+    </div>
     <div class="sidebar">
-      <h2>Attendance <span class="highlight">System</span></h2>
-      <ul>
-        <li>
-          <a href="{{ url_for('lec_dashboard') }}" class="active"
-            >Take Attendance</a
-          >
-        </li>
-
-        <li>
-          <a href="{{ url_for('view_attendance') }}">
-            <i class="fas fa-eye"></i>
-            View Attendance
-          </a>
-        </li> 
-        <li>
-          <a href="{{ url_for('lec_student') }}" >
-            <i class="fas fa-users"></i>
-            Students
-          </a>
-        </li>
-        <li>
-          <a href="{{ url_for('download_attendance') }}" >
-            <i class="fas fa-download"></i>
-            Download Attendance
-          </a>
-        </li>
-      </ul>
+    
+      <ul><br>
+        <li><a href="{{ url_for('lec_dashboard') }}" class="active">Take Attendance</a></li>
+        <li><a href="{{ url_for('view_attendance') }}">View Attendance</a></li>
+        <li><a href="{{ url_for('lec_student') }}">Students</a></li>
+        <li><a href="{{ url_for('download_attendance') }}" >Download Attendance</a></li>
+    </ul>
       <div class="sidebar-footer">
         <a href="#" class="menu-item">
           <i class="fas fa-cog"></i>
@@ -51,22 +45,7 @@
     </div>
 
     <div class="main-content">
-      <header>
-        <div class="search-bar">
-          <input type="text" placeholder="Search..." />
-          <button type="submit">
-            <i class="fas fa-search"></i>
-          </button>
-        </div>
-        <div class="user-info">
-          <span class="user-name">{{ lecturer.firstName }}</span>
-          <!-- <img
-            src="{{ url_for('static', filename='images/profile.png') }}"
-            alt="Profile"
-            class="profile-pic"
-          /> -->
-        </div>
-      </header>
+    
 
       <div class="attendance-section">
         <h3>Take Attendance</h3>
@@ -101,6 +80,14 @@
           </button>
           <button class="btn end-btn" disabled>END Attendance Taking</button>
           <button id="exportExcelBtn" class="btn" style="display:none; margin-left:10px;">Export Attendance as Excel</button>
+        </div>
+
+        <!-- Camera preview and capture section -->
+        <div id="cameraSection" style="margin-top: 20px;">
+          <video id="cameraPreview" width="400" height="300" autoplay style="display:none; border:1px solid #ccc;"></video>
+          <button id="openCameraBtn" type="button">Open Camera</button>
+          <button id="captureBtn" type="button" style="display:none;">Capture</button>
+          <canvas id="snapshot" width="400" height="300" style="display:none; border:1px solid #ccc;"></canvas>
         </div>
 
         <div

@@ -10,9 +10,24 @@
     />
   </head>
   <body>
+    <div class="custom-header">
+      <div class="header-left">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="University Logo" class="header-logo">
+        <div class="header-text">
+          <div class="header-title">South Eastern University of Sri Lanka</div>
+          <div class="header-si">ශ්‍රී ලංකා අග්නිදිග විශ්වවිද්‍යාලය</div>
+          <div class="header-ta">இலங்கை தென்கிழக்கு பல்கலைக்கழகம்</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <img src="{{ url_for('static', filename='images/face1.png') }}" alt="Face Icon" class="header-face-icon">
+        <div class="header-system">Face Recognition Attendance System</div>
+      </div>
+    </div>
+
     <div class="sidebar">
-      <h2>Attendance <span class="highlight">System</span></h2>
-      <ul>
+     
+      <ul><br>
         <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
         <li>
           <a href="{{ url_for('manage_courses') }}">Manage Courses</a>
@@ -30,16 +45,13 @@
         </li>
       </ul>
       <div class="sidebar-footer">
-        <a href="#">Settings</a>
+       
         <a href="{{ url_for('logout') }}">Logout</a>
       </div>
     </div>
 
     <div class="main-content">
-      <header>
-        <input type="text" placeholder="Search ..." />
-        <span class="admin-badge">@Admin</span>
-      </header>
+      <br>
 
       <h3 class="page-title">Overview</h3>
 
@@ -52,6 +64,17 @@
           <a href="#" class="add-small-btn" id="addStudentBtn">+ Add Student</a>
         </div>
       </section>
+
+      <div class="filter-controls">
+        <label for="filterFaculty" class="filter-label">Select Faculty:</label>
+        <select id="filterFaculty" class="select-box">
+          <option value="">All Faculties</option>
+        </select>
+        <label for="filterCourse" class="filter-label">Select Course:</label>
+        <select id="filterCourse" class="select-box">
+          <option value="">All Courses</option>
+        </select>
+      </div>
 
       <section class="data-section">
         <h3>Students</h3>
@@ -415,6 +438,67 @@
             });
           }
         });
+
+        // --- Filtering Controls ---
+        const filterFaculty = document.getElementById('filterFaculty');
+        const filterCourse = document.getElementById('filterCourse');
+        const studentsTableBody = document.querySelector('tbody');
+
+        // Populate faculty dropdown
+        fetch('/get_faculties')
+          .then(res => res.json())
+          .then(faculties => {
+            faculties.forEach(faculty => {
+              const opt = document.createElement('option');
+              opt.value = faculty.facultyCode;
+              opt.textContent = faculty.facultyName;
+              filterFaculty.appendChild(opt);
+            });
+          });
+
+        // Populate course dropdown based on selected faculty
+        filterFaculty.addEventListener('change', function() {
+          const facultyCode = this.value;
+          filterCourse.innerHTML = '<option value="">All Courses</option>';
+          if (!facultyCode) {
+            // If 'All Faculties' is selected, show all students and reset course dropdown
+            filterStudents();
+            return;
+          }
+          fetch(`/get_courses_by_faculty/${facultyCode}`)
+            .then(res => res.json())
+            .then(courses => {
+              courses.forEach(course => {
+                const opt = document.createElement('option');
+                opt.value = course.courseCode;
+                opt.textContent = course.name;
+                filterCourse.appendChild(opt);
+              });
+            });
+          filterStudents();
+        });
+
+        // Filter students when course changes
+        filterCourse.addEventListener('change', filterStudents);
+
+        // Filter students in the table
+        function filterStudents() {
+          const faculty = filterFaculty.value;
+          const course = filterCourse.value;
+          const rows = studentsTableBody.querySelectorAll('tr');
+          rows.forEach(row => {
+            const rowFaculty = row.children[2]?.textContent.trim();
+            const rowCourse = row.children[3]?.textContent.trim();
+            let show = true;
+            if (faculty && rowFaculty !== faculty) show = false;
+            if (course && rowCourse !== course) show = false;
+            row.style.display = show ? '' : 'none';
+          });
+          // If 'All Faculties' is selected, reset course dropdown
+          if (!faculty) {
+            filterCourse.innerHTML = '<option value="">All Courses</option>';
+          }
+        }
       });
     </script>
   </body>

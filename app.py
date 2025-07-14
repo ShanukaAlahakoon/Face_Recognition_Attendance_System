@@ -40,6 +40,9 @@ import shutil  # Add this import at the top if not already present
 import pandas as pd
 import io
 import signal
+import openpyxl
+from openpyxl.styles import Alignment, Font
+from openpyxl.utils import get_column_letter
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # Add this if not already present
@@ -113,6 +116,8 @@ def dashboard():
 
     print("Courses:", courses)
 
+    total_courses = len(courses)  # or however you get the count
+
     return render_template('admin/admin_dashboard.html', 
                            total_students=total_students, 
                            total_units=total_units, 
@@ -120,7 +125,8 @@ def dashboard():
                            lecturers=lecturers, 
                            students=students, 
                            lecture_rooms=lecture_rooms, 
-                           courses=courses)
+                           courses=courses,
+                           total_courses=total_courses)
 
 @app.route('/logout')
 def logout():
@@ -358,7 +364,7 @@ def fetch_students_by_course_unit():
         return jsonify([])
     
     print(f"Fetching students for course {course_id} and unit {unit_id}")  # Debug print
-    students = get_students_by_course_unit(course_id, unit_id)
+    students = sorted(get_students_by_course_unit(course_id, unit_id), key=lambda s: s['regNo'])
     print(f"Found students: {students}")  # Debug print
     
     return jsonify(students)
@@ -369,7 +375,7 @@ def fetch_students_by_course(course_id):
         return redirect(url_for('login'))
     
     print(f"Fetching students for course ID: {course_id}")  # Debug print
-    students = get_students_by_course(course_id)
+    students = sorted(get_students_by_course(course_id), key=lambda s: s['regNo'])
     print(f"Found students: {students}")  # Debug print
     return jsonify(students)
 
@@ -1067,32 +1073,90 @@ def delete_faculty():
 def export_attendance_excel():
     course_id = request.args.get('course_id')
     unit_id = request.args.get('unit_id')
-    venue_id = request.args.get('venue_id')
+    date = request.args.get('date')  # <-- Get the date from the request
 
-    # Fetch attendance data for the given course/unit/venue
-    # You may need to adjust this to match your data model
+    # Fetch attendance data for the given course/unit/date
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
     cursor.execute("""
-        SELECT s.registrationNumber, CONCAT(s.firstName, ' ', s.lastName) as name, c.name as course, u.name as unit, v.className as venue, 
+        SELECT s.registrationNumber, CONCAT(s.firstName, ' ', s.lastName) as name, c.name as course, u.name as unit,
+               v.className as venue,  -- <--- Add this line
                IFNULL(a.attendanceStatus, 'Absent') as attendanceStatus
         FROM tblstudents s
         JOIN tblcourse c ON s.courseCode = c.courseCode
         JOIN tblunit u ON u.courseID = c.courseCode
-        JOIN tblvenue v ON v.id = %s
-        LEFT JOIN tblattendance a ON a.studentRegistrationNumber = s.registrationNumber AND a.unit = u.unitCode AND a.venueId = v.id
+        LEFT JOIN tblattendance a 
+            ON a.studentRegistrationNumber = s.registrationNumber 
+            AND a.unit = u.unitCode 
+            AND DATE(a.dateMarked) = %s
+        LEFT JOIN tblvenue v ON a.venueId = v.id  -- <--- Add this line
         WHERE c.id = %s AND u.id = %s
-    """, (venue_id, course_id, unit_id))
+        ORDER BY s.registrationNumber
+    """, (date, course_id, unit_id))
     data = cursor.fetchall()
     cursor.close()
     connection.close()
 
-    df = pd.DataFrame(data)
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Attendance')
-    output.seek(0)
+    # Prepare Excel workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Attendance"
 
+    # 1. University name at the top (centered and bold)
+    university_name = "South Eastern University of Sri Lanka"
+    ws.merge_cells('A1:C1')  # Adjust range if you have more columns
+    ws['A1'] = university_name
+    ws['A1'].font = Font(size=16, bold=True)
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+
+    # 2. (Optional) Add a blank row for spacing
+    ws.append([])
+
+    # 3. Continue with your course/unit info and table as before
+    course_name = data[0]['course'] if data else ''
+    unit_name = data[0]['unit'] if data else ''
+    venue_name = data[0].get('venue', '') if data else ''
+
+    ws['A3'] = f"Date:- {date}"
+    ws['A3'].font = Font(bold=True)
+    ws['A3'] = f"Course Name:- {course_name}"
+    ws['C3'] = f"Unit:- {unit_name}"
+    ws['C3'].font = Font(bold=True)
+    ws['A5'] = "Registration No"
+    ws['B5'] = "Name"
+    ws['C5'] = "Status"
+    for col in ['A', 'B', 'C']:
+        ws[f"{col}5"].font = Font(bold=True)
+        ws[f"{col}5"].alignment = Alignment(horizontal='center')
+
+    # Attendance data
+    row_num = 6
+    for row in data:
+        ws[f"A{row_num}"] = row['registrationNumber']
+        ws[f"B{row_num}"] = row['name']
+        ws[f"C{row_num}"] = row['attendanceStatus']
+        row_num += 1
+
+    # Add a few empty rows for manual signature
+    for _ in range(5):
+        ws.append(['', '', ''])
+
+    # Date and Signature rows
+    ws[f"A{row_num+2}"] = "Date:-"
+    ws[f"C{row_num+2}"] = "Signature:-"
+    ws[f"A{row_num+2}"].font = ws[f"C{row_num+2}"].font = Font(underline='single')
+    ws[f"C{row_num+2}"].font = ws[f"C{row_num+2}"].font = Font(underline='single')
+
+    # Adjust column widths
+    ws.column_dimensions['A'].width = 25
+    ws.column_dimensions['B'].width = 20
+    ws.column_dimensions['C'].width = 15
+
+    # Save to BytesIO and send
+    from io import BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
     return send_file(output, as_attachment=True, download_name='attendance.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 @app.route('/stop_attendance', methods=['POST'])
@@ -1139,6 +1203,77 @@ def get_lecture_dates():
     cursor.close()
     connection.close()
     return jsonify(dates)
+
+@app.route('/export_view_attendance_excel')
+def export_view_attendance_excel():
+    course_id = request.args.get('course_id')
+    unit_id = request.args.get('unit_id')
+    date = request.args.get('date')
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT s.registrationNumber, CONCAT(s.firstName, ' ', s.lastName) as name, 
+               IFNULL(a.attendanceStatus, 'Absent') as attendanceStatus
+        FROM tblstudents s
+        JOIN tblcourse c ON s.courseCode = c.courseCode
+        JOIN tblunit u ON u.courseID = c.courseCode
+        LEFT JOIN tblattendance a 
+            ON a.studentRegistrationNumber = s.registrationNumber 
+            AND a.unit = u.unitCode 
+            AND DATE(a.dateMarked) = %s
+        WHERE c.id = %s AND u.id = %s
+        ORDER BY s.registrationNumber
+    """, (date, course_id, unit_id))
+    data = cursor.fetchall()
+    cursor.close()
+    connection.close()
+
+    # Prepare Excel workbook
+    import openpyxl
+    from openpyxl.styles import Alignment, Font
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Attendance"
+
+    # University name at the top
+    ws.merge_cells('A1:C1')
+    ws['A1'] = "South Eastern University of Sri Lanka"
+    ws['A1'].font = Font(size=16, bold=True)
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+
+    # Course, Unit, Date info
+    ws['A2'] = f"Course ID: {course_id}"
+    ws['B2'] = f"Unit ID: {unit_id}"
+    ws['C2'] = f"Date: {date}"
+    ws['A2'].font = ws['B2'].font = ws['C2'].font = Font(bold=True)
+
+    # Table headers
+    ws['A4'] = "Registration No"
+    ws['B4'] = "Name"
+    ws['C4'] = "Status"
+    for col in ['A', 'B', 'C']:
+        ws[f"{col}4"].font = Font(bold=True)
+        ws[f"{col}4"].alignment = Alignment(horizontal='center')
+
+    # Attendance data
+    row_num = 5
+    for row in data:
+        ws[f"A{row_num}"] = row['registrationNumber']
+        ws[f"B{row_num}"] = row['name']
+        ws[f"C{row_num}"] = row['attendanceStatus']
+        row_num += 1
+
+    # Adjust column widths
+    ws.column_dimensions['A'].width = 25
+    ws.column_dimensions['B'].width = 20
+    ws.column_dimensions['C'].width = 15
+
+    from io import BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return send_file(output, as_attachment=True, download_name='view_attendance.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 if __name__ == '__main__':
     app.run(debug=True)

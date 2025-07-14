@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 03, 2025 at 10:28 AM
+-- Generation Time: Jul 14, 2025 at 06:56 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -58,15 +58,6 @@ CREATE TABLE `tblattendance` (
   `venueId` varchar(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `tblattendance`
---
-
-INSERT INTO `tblattendance` (`attendanceID`, `studentRegistrationNumber`, `course`, `attendanceStatus`, `dateMarked`, `unit`, `venueId`) VALUES
-(50, 'FOE.CV.004', 'FOE.CV', 'Present', '2025-07-01', 'CVU1', '8'),
-(51, 'FOS.CS.006', 'FOS.CS', 'Present', '2025-07-03', 'CSU1', '7'),
-(52, 'FOS.CS.004', 'FOS.CS', 'Present', '2025-07-03', 'CSU1', '7');
-
 -- --------------------------------------------------------
 
 --
@@ -81,14 +72,6 @@ CREATE TABLE `tblcourse` (
   `dateCreated` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `tblcourse`
---
-
-INSERT INTO `tblcourse` (`id`, `name`, `facultyID`, `courseCode`, `dateCreated`) VALUES
-(28, 'Computer Science', 'FOS', 'FOS.CS', '2025-05-25'),
-(29, 'Civil Engineering', 'FOE', 'FOE.CV', '2025-05-25');
-
 -- --------------------------------------------------------
 
 --
@@ -101,14 +84,6 @@ CREATE TABLE `tblfaculty` (
   `facultyCode` varchar(50) DEFAULT NULL,
   `dateRegistered` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `tblfaculty`
---
-
-INSERT INTO `tblfaculty` (`id`, `facultyName`, `facultyCode`, `dateRegistered`) VALUES
-(5, 'Faculty of Science', 'FOS', '2025-05-25'),
-(6, 'Faculty of Engineering', 'FOE', '2025-05-25');
 
 -- --------------------------------------------------------
 
@@ -153,20 +128,6 @@ CREATE TABLE `tblstudents` (
   `dateRegistered` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `tblstudents`
---
-
-INSERT INTO `tblstudents` (`id`, `firstName`, `lastName`, `registrationNumber`, `email`, `faculty`, `courseCode`, `studentImage`, `dateRegistered`) VALUES
-(55, 'Isuru', 'Prasad', 'FOS.CS.002', 'isuru@gmail.com', 'FOS', 'FOS.CS', NULL, '2025-05-25 19:50:36'),
-(56, 'Dinuka', 'Sampath', 'FOS.CS.003', 'dinuka@gmail.com', 'FOS', 'FOS.CS', NULL, '2025-05-25 19:52:50'),
-(57, 'kaveesha', 'Bandara', 'FOS.CS.004', 'kaveesha@gmail.com', 'FOS', 'FOS.CS', NULL, '2025-05-26 13:10:29'),
-(59, 'Nuwan', 'Bandara', 'FOS.CS.006', 'nuwan@gmail.com', 'FOS', 'FOS.CS', NULL, '2025-05-27 10:55:49'),
-(60, 'Amal', 'Perera', 'FOS.CS.007', 'amal@gmail.com', 'FOS', 'FOS.CS', NULL, '2025-05-27 10:57:00'),
-(61, 'dddd', 'dddd', 'FOE.CV.002', 'dd@gmail.com', 'FOE', 'FOE.CV', NULL, '2025-05-27 11:47:43'),
-(62, 'Imanjana ', 'Sandeepa', 'FOE.CV.003', 'imanjana@gmail.com', 'FOE', 'FOE.CV', NULL, '2025-05-27 11:51:31'),
-(63, 'Kalana', 'Dhakshitha', 'FOE.CV.004', 'kalana@gmail.com', 'FOE', 'FOE.CV', NULL, '2025-07-01 13:29:51');
-
 -- --------------------------------------------------------
 
 --
@@ -180,14 +141,6 @@ CREATE TABLE `tblunit` (
   `courseID` varchar(50) DEFAULT NULL,
   `dateCreated` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `tblunit`
---
-
-INSERT INTO `tblunit` (`id`, `name`, `unitCode`, `courseID`, `dateCreated`) VALUES
-(8, 'Introduction', 'CSU1', 'FOS.CS', '2025-05-25'),
-(9, 'Basic ', 'CVU1', 'FOE.CV', '2025-05-25');
 
 -- --------------------------------------------------------
 
@@ -204,14 +157,6 @@ CREATE TABLE `tblvenue` (
   `classification` varchar(50) DEFAULT NULL,
   `dateCreated` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `tblvenue`
---
-
-INSERT INTO `tblvenue` (`id`, `className`, `facultyCode`, `currentStatus`, `capacity`, `classification`, `dateCreated`) VALUES
-(7, 'FOS LH01', 'FOS', 'Available', 50, 'Lecture Hall', NULL),
-(8, 'FOE LH01', 'FOE', 'Available', 100, 'Lecture Hall', NULL);
 
 --
 -- Indexes for dumped tables
@@ -292,19 +237,19 @@ ALTER TABLE `tbladmin`
 -- AUTO_INCREMENT for table `tblattendance`
 --
 ALTER TABLE `tblattendance`
-  MODIFY `attendanceID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `attendanceID` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tblcourse`
 --
 ALTER TABLE `tblcourse`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tblfaculty`
 --
 ALTER TABLE `tblfaculty`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tbllecturer`
@@ -316,19 +261,19 @@ ALTER TABLE `tbllecturer`
 -- AUTO_INCREMENT for table `tblstudents`
 --
 ALTER TABLE `tblstudents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tblunit`
 --
 ALTER TABLE `tblunit`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tblvenue`
 --
 ALTER TABLE `tblvenue`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables

@@ -6,9 +6,23 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 <body>
+    <div class="custom-header">
+        <div class="header-left">
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="University Logo" class="header-logo">
+          <div class="header-text">
+            <div class="header-title">South Eastern University of Sri Lanka</div>
+            <div class="header-si">ශ්‍රී ලංකා අග්නිදිග විශ්වවිද්‍යාලය</div>
+            <div class="header-ta">இலங்கை தென்கிழக்கு பல்கலைக்கழகம்</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <img src="{{ url_for('static', filename='images/face1.png') }}" alt="Face Icon" class="header-face-icon">
+          <div class="header-system">Face Recognition Attendance System</div>
+        </div>
+      </div>
     <div class="sidebar">
-        <h2>Attendance <span class="highlight">System</span></h2>
-        <ul>
+        
+        <ul><br>
             <li><a href="{{ url_for('lec_dashboard') }}">Take Attendance</a></li>
             <li><a href="{{ url_for('view_attendance') }}" class="active">View Attendance</a></li>
             <li><a href="{{ url_for('lec_student') }}">Students</a></li>
@@ -20,16 +34,7 @@
         </div>
     </div>
     <div class="main-content">
-        <header>
-            <div class="search-bar">
-                <input type="text" placeholder="Search ....." />
-                <button type="submit"><i class="fas fa-search"></i></button>
-            </div>
-            <div class="user-info">
-                <span class="user-name"></span>
-                <img src="{{ url_for('static', filename='images/profile.png') }}" alt="Profile" class="profile-pic" />
-            </div>
-        </header>
+        
         <div class="attendance-section">
             <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
                 <select id="courseSelect" class="select-box" style="min-width:200px;">
@@ -141,7 +146,16 @@
 
         // Export button (optional: implement backend for Excel export)
         document.getElementById('exportBtn').addEventListener('click', function() {
-            alert('Export functionality not implemented yet.');
+            const course_id = document.getElementById('courseSelect').value;
+            const unit_id = document.getElementById('unitSelect').value;
+            const date = document.getElementById('dateSelect').value; // or whatever your date input's id is
+
+            if (!course_id || !unit_id || !date) {
+                alert("Please select course, unit, and date.");
+                return;
+            }
+            // Use the new endpoint for view attendance export
+            window.open(`/export_view_attendance_excel?course_id=${course_id}&unit_id=${unit_id}&date=${date}`, '_blank');
         });
     </script>
 </body>

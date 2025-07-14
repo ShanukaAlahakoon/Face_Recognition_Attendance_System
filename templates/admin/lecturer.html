@@ -10,9 +10,24 @@
     />
   </head>
   <body>
+    <div class="custom-header">
+      <div class="header-left">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="University Logo" class="header-logo">
+        <div class="header-text">
+          <div class="header-title">South Eastern University of Sri Lanka</div>
+          <div class="header-si">ශ්‍රී ලංකා අග්නිදිග විශ්වවිද්‍යාලය</div>
+          <div class="header-ta">இலங்கை தென்கிழக்கு பல்கலைக்கழகம்</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <img src="{{ url_for('static', filename='images/face1.png') }}" alt="Face Icon" class="header-face-icon">
+        <div class="header-system">Face Recognition Attendance System</div>
+      </div>
+    </div>
+
     <div class="sidebar">
-      <h2>Attendance <span class="highlight">System</span></h2>
-      <ul>
+      
+      <ul><br>
         <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
         <li>
           <a href="{{ url_for('manage_courses') }}">Manage Courses</a>
@@ -30,16 +45,13 @@
         </li>
       </ul>
       <div class="sidebar-footer">
-        <a href="#">Settings</a>
+      
         <a href="{{ url_for('logout') }}">Logout</a>
       </div>
     </div>
 
     <div class="main-content">
-      <header>
-        <input type="text" placeholder="Search ..." />
-        <span class="admin-badge">@Admin</span>
-      </header>
+      <br>
 
       <h3 class="page-title">Overview</h3>
 
@@ -58,7 +70,7 @@
       <section class="data-section">
         <div class="section-header">
           <h3>Lecturers</h3>
-          <button class="add-btn" onclick="openAddLecturerModal()">+ Add Lecturer</button>
+    
         </div>
         
         <table>
@@ -83,7 +95,7 @@
                 <td>{{ lecturer.course }}</td>
                 <td>
                   <div class="action-buttons">
-                    <button class="action-btn edit-btn">✏️</button>
+                    
                     <button class="action-btn delete-btn">❌</button>
                   </div>
                 </td>
