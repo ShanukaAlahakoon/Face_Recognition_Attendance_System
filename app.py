@@ -332,6 +332,7 @@ def lec_dashboard():
     email = session.get('email')
     lecturer = get_lecturer_by_email(email)
     courses = get_courses()
+    faculties = get_faculties()  # <-- Add this line
     
     # Debug print
     print("Available courses:", courses)
@@ -340,7 +341,7 @@ def lec_dashboard():
     if lecturer and 'venues' in lecturer:
         print("Lecturer venues:", lecturer['venues'])
     
-    return render_template('lecturer/lec_dashboard.html', lecturer=lecturer, courses=courses)
+    return render_template('lecturer/lec_dashboard.html', lecturer=lecturer, courses=courses, faculties=faculties)
 
 @app.route('/get_units_by_course/<course_id>')
 def fetch_units_by_course(course_id):
@@ -736,16 +737,32 @@ def launch_attendance():
         # Get the absolute path to Attendance.py
         attendance_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Attendance.py')
         try:
-            # Launch Attendance.py with course code, unit code, and venue ID
-            process = subprocess.Popen([sys.executable, attendance_script, course['courseCode'], unit['unitCode'], str(venue_id)])
-            attendance_process = process  # Save the process object
+            process = subprocess.Popen(
+                [sys.executable, attendance_script, course['courseCode'], unit['unitCode'], str(venue_id)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+            attendance_process = process
+
+            # Wait for "ENCODING_COMPLETE" in stdout
+            while True:
+                line = process.stdout.readline()
+                if not line:
+                    break
+                print(line.strip())  # Optionally log output
+                if "ENCODING_COMPLETE" in line:
+                    break
+
         except Exception as e:
             print(f"Error launching Attendance.py: {e}")
             return jsonify({
                 'success': False,
                 'error': f'Failed to launch Attendance.py: {str(e)}'
             })
-        
+
+        # Only return success after encoding is complete
         return jsonify({
             'success': True,
             'message': f'Attendance system launched successfully for course {course["courseCode"]}, Unit {unit["unitCode"]}, Venue ID {venue_id}'
@@ -883,15 +900,15 @@ def get_attendance_matrix():
     """, (course_id, unit_id))
     dates = [row['dateMarked'].strftime('%Y-%m-%d') for row in cursor.fetchall()]
 
-    # Get all students for this course/unit
+    # Get all students for this course/unit, including names
     cursor.execute("""
-        SELECT s.registrationNumber
+        SELECT s.registrationNumber, CONCAT(s.firstName, ' ', s.lastName) as name
         FROM tblstudents s
         JOIN tblcourse c ON s.courseCode = c.courseCode
         JOIN tblunit u ON u.courseID = c.courseCode
         WHERE c.id = %s AND u.id = %s
     """, (course_id, unit_id))
-    students = [row['registrationNumber'] for row in cursor.fetchall()]
+    students = cursor.fetchall()
 
     # Get all attendance records for this course/unit
     cursor.execute("""
@@ -906,7 +923,7 @@ def get_attendance_matrix():
     connection.close()
 
     # Build matrix
-    student_map = {reg: {"registrationNumber": reg, "attendance": {}} for reg in students}
+    student_map = {reg['registrationNumber']: {"registrationNumber": reg['registrationNumber'], "name": reg['name'], "attendance": {}} for reg in students}
     for rec in records:
         reg = rec['studentRegistrationNumber']
         date = rec['dateMarked'].strftime('%Y-%m-%d')
@@ -1212,6 +1229,15 @@ def export_view_attendance_excel():
 
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
+
+    # Fetch course and unit names
+    cursor.execute("SELECT name FROM tblcourse WHERE id = %s", (course_id,))
+    course_row = cursor.fetchone()
+    course_name = course_row['name'] if course_row else ''
+    cursor.execute("SELECT name FROM tblunit WHERE id = %s", (unit_id,))
+    unit_row = cursor.fetchone()
+    unit_name = unit_row['name'] if unit_row else ''
+
     cursor.execute("""
         SELECT s.registrationNumber, CONCAT(s.firstName, ' ', s.lastName) as name, 
                IFNULL(a.attendanceStatus, 'Absent') as attendanceStatus
@@ -1242,22 +1268,22 @@ def export_view_attendance_excel():
     ws['A1'].font = Font(size=16, bold=True)
     ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
 
-    # Course, Unit, Date info
-    ws['A2'] = f"Course ID: {course_id}"
-    ws['B2'] = f"Unit ID: {unit_id}"
-    ws['C2'] = f"Date: {date}"
-    ws['A2'].font = ws['B2'].font = ws['C2'].font = Font(bold=True)
+    # Course, Unit, Date info (use names)
+    ws['A4'] = f"Course: {course_name}"
+    ws['B4'] = f"Unit: {unit_name}"
+    ws['C4'] = f"Date: {date}"
+    ws['A4'].font = ws['B4'].font = ws['C4'].font = Font(bold=True)
 
     # Table headers
-    ws['A4'] = "Registration No"
-    ws['B4'] = "Name"
-    ws['C4'] = "Status"
+    ws['A6'] = "Registration No"
+    ws['B6'] = "Name"
+    ws['C6'] = "Status"
     for col in ['A', 'B', 'C']:
-        ws[f"{col}4"].font = Font(bold=True)
-        ws[f"{col}4"].alignment = Alignment(horizontal='center')
+        ws[f"{col}6"].font = Font(bold=True)
+        ws[f"{col}6"].alignment = Alignment(horizontal='center')
 
     # Attendance data
-    row_num = 5
+    row_num = 7
     for row in data:
         ws[f"A{row_num}"] = row['registrationNumber']
         ws[f"B{row_num}"] = row['name']
@@ -1274,6 +1300,140 @@ def export_view_attendance_excel():
     wb.save(output)
     output.seek(0)
     return send_file(output, as_attachment=True, download_name='view_attendance.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.route('/export_download_attendance_excel')
+def export_download_attendance_excel():
+    import openpyxl
+    from openpyxl.styles import Alignment, Font
+    from io import BytesIO
+
+    course_id = request.args.get('course_id')
+    unit_id = request.args.get('unit_id')
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Get course, unit, and faculty names
+    cursor.execute("SELECT name, facultyID FROM tblcourse WHERE id = %s", (course_id,))
+    course_row = cursor.fetchone()
+    course_name = course_row['name'] if course_row else ''
+    faculty_code = course_row['facultyID'] if course_row else ''
+    faculty_name = ''
+    if faculty_code:
+        cursor.execute("SELECT facultyName FROM tblfaculty WHERE facultyCode = %s", (faculty_code,))
+        faculty_row = cursor.fetchone()
+        faculty_name = faculty_row['facultyName'] if faculty_row else ''
+    cursor.execute("SELECT name FROM tblunit WHERE id = %s", (unit_id,))
+    unit_row = cursor.fetchone()
+    unit_name = unit_row['name'] if unit_row else ''
+
+    # Get all unique dates for this course/unit
+    cursor.execute("""
+        SELECT DISTINCT DATE(ta.dateMarked) as dateMarked
+        FROM tblattendance ta
+        JOIN tblunit u ON ta.unit = u.unitCode
+        JOIN tblcourse c ON u.courseID = c.courseCode
+        WHERE c.id = %s AND u.id = %s
+        ORDER BY dateMarked
+    """, (course_id, unit_id))
+    dates = [row['dateMarked'].strftime('%Y-%m-%d') for row in cursor.fetchall()]
+
+    # Get all students for this course/unit, including names
+    cursor.execute("""
+        SELECT s.registrationNumber, CONCAT(s.firstName, ' ', s.lastName) as name
+        FROM tblstudents s
+        JOIN tblcourse c ON s.courseCode = c.courseCode
+        JOIN tblunit u ON u.courseID = c.courseCode
+        WHERE c.id = %s AND u.id = %s
+    """, (course_id, unit_id))
+    students = cursor.fetchall()
+
+    # Get all attendance records for this course/unit
+    cursor.execute("""
+        SELECT ta.studentRegistrationNumber, DATE(ta.dateMarked) as dateMarked, ta.attendanceStatus
+        FROM tblattendance ta
+        JOIN tblunit u ON ta.unit = u.unitCode
+        JOIN tblcourse c ON u.courseID = c.courseCode
+        WHERE c.id = %s AND u.id = %s
+    """, (course_id, unit_id))
+    records = cursor.fetchall()
+    cursor.close()
+    connection.close()
+
+    # Build matrix
+    student_map = {reg['registrationNumber']: {"registrationNumber": reg['registrationNumber'], "name": reg['name'], "attendance": {}} for reg in students}
+    for rec in records:
+        reg = rec['studentRegistrationNumber']
+        date = rec['dateMarked'].strftime('%Y-%m-%d') if hasattr(rec['dateMarked'], 'strftime') else rec['dateMarked']
+        status = rec['attendanceStatus']
+        if reg in student_map:
+            student_map[reg]["attendance"][date] = status
+
+    # Fill in "Absent" for missing dates and calculate percentage
+    for student in student_map.values():
+        present_count = 0
+        for date in dates:
+            if date not in student["attendance"]:
+                student["attendance"][date] = "Absent"
+            if student["attendance"][date] == "Present":
+                present_count += 1
+        total = len(dates)
+        student["percentage"] = f"{(present_count / total * 100):.2f}%" if total > 0 else "N/A"
+
+    # Create Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Download Attendance"
+
+    # University name at the very top (merged and bold)
+    col_count = 2 + len(dates) + 1  # Registration No, Name, dates, Percentage
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=col_count)
+    ws.cell(row=1, column=1).value = "South Eastern University of Sri Lanka"
+    ws.cell(row=1, column=1).font = Font(size=16, bold=True)
+    ws.cell(row=1, column=1).alignment = Alignment(horizontal='center', vertical='center')
+
+    # Faculty name (merged and bold)
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=col_count)
+    ws.cell(row=2, column=1).value = f"{faculty_name}"
+    ws.cell(row=2, column=1).font = Font(size=13, bold=True)
+    ws.cell(row=2, column=1).alignment = Alignment(horizontal='center', vertical='center')
+
+    # Course and unit name (merged and bold)
+    ws.merge_cells(start_row=4, start_column=1, end_row=4, end_column=col_count)
+    ws.cell(row=4, column=1).value = f"Course: {course_name}"
+    ws.cell(row=4, column=1).font = Font(size=12, bold=True)
+    ws.cell(row=4, column=1).alignment = Alignment(horizontal='left', vertical='center')
+    
+    ws.merge_cells(start_row=5, start_column=1, end_row=5, end_column=col_count)
+    ws.cell(row=5, column=1).value = f"Unit: {unit_name}"
+    ws.cell(row=5, column=1).font = Font(size=12, bold=True)
+    ws.cell(row=5, column=1).alignment = Alignment(horizontal='left', vertical='center')
+    # Header (row 7)
+    ws.append([])  # Row 6 blank
+    ws.append(["Registration No", "Name"] + dates + ["Percentage of Attendance"])
+    for col in range(1, col_count + 1):
+        ws.cell(row=7, column=col).font = Font(bold=True)
+        ws.cell(row=7, column=col).alignment = Alignment(horizontal='center')
+
+    # Data rows (start from row 5)
+    for student in student_map.values():
+        row = [student["registrationNumber"], student["name"]]
+        row += [student["attendance"][date] for date in dates]
+        row.append(student["percentage"])
+        ws.append(row)
+
+    # Adjust column widths
+    ws.column_dimensions['A'].width = 20
+    ws.column_dimensions['B'].width = 20
+    for i in range(3, 3 + len(dates)):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = 15
+    ws.column_dimensions[openpyxl.utils.get_column_letter(3 + len(dates))].width = 25
+
+    # Save to BytesIO and send
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return send_file(output, as_attachment=True, download_name='download_attendance.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 if __name__ == '__main__':
     app.run(debug=True)

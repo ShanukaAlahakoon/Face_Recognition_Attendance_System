@@ -40,86 +40,71 @@ def capture_student_image(course, reg_number):
         if cap is None or not cap.isOpened():
             return False, "Failed to access camera.", None
         
+        directions = [
+            "Look Straight",
+            "Turn Face LEFT",
+            "Turn Face RIGHT",
+            "Turn Face UP",
+            "Turn Face DOWN"
+        ]
+        images_per_direction = 5
+        total_images = len(directions) * images_per_direction
+
         image_paths = []
-        images_captured = 0
-        total_images = 15  # Total number of images to capture
-        interval = 1  # Time interval between captures in seconds
-        
-        print("Press 's' to start capturing images...")
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                cap.release()
-                cv2.destroyAllWindows()
-                return False, "Failed to read from camera.", None
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 
-            frame = cv2.flip(frame, 1)
-            cv2.putText(frame, "Press 's' to start capture", (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-            cv2.imshow("Capture Images", frame)
-            cv2.setWindowProperty("Capture Images", cv2.WND_PROP_TOPMOST, 1)
+        for direction in directions:
+            # Countdown before capturing for this direction
+            countdown_seconds = 3
+            for i in range(countdown_seconds, 0, -1):
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                frame = cv2.flip(frame, 1)
+                # Draw face rectangle
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(100, 100))
+                for (x, y, w, h) in faces:
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                    break
+                cv2.putText(frame, direction, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                cv2.putText(frame, f"Starting in {i}...", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.imshow("Capture Images", frame)
+                cv2.setWindowProperty("Capture Images", cv2.WND_PROP_TOPMOST, 1)
+                cv2.waitKey(1000)  # Wait 1 second
 
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('s'):
-                break
-            elif key == ord('q'):
-                cap.release()
-                cv2.destroyAllWindows()
-                return False, "Capture cancelled by user.", None
-        
-        while images_captured < total_images:
-            # Read frame
-            ret, frame = cap.read()
-            if not ret:
-                cap.release()
-                cv2.destroyAllWindows()
-                return False, "Failed to read from camera.", None
-            
-            # Flip the frame horizontally for natural interaction
-            frame = cv2.flip(frame, 1)
-            
-            # Display countdown and progress
-            cv2.putText(frame, f"Capturing image {images_captured + 1}/{total_images}", (10, 30),
-                       cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            
-            # Display the frame
-            cv2.imshow("Capture Images", frame)
-            cv2.setWindowProperty("Capture Images", cv2.WND_PROP_TOPMOST, 1)
-            
-            # Save image
-            image_path = os.path.join(folder_path, f"{reg_number}_{images_captured + 1}.jpg")
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            success = cv2.imwrite(image_path, rgb_frame)
-            
-            if success:
+            # Capture images for this direction
+            for img_num in range(images_per_direction):
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                frame = cv2.flip(frame, 1)
+                # Draw face rectangle
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(100, 100))
+                for (x, y, w, h) in faces:
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                    break
+                # Show direction and progress
+                cv2.putText(frame, direction, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                cv2.putText(frame, f"Capturing image {img_num + 1}/{images_per_direction}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.imshow("Capture Images", frame)
+                cv2.setWindowProperty("Capture Images", cv2.WND_PROP_TOPMOST, 1)
+                # Save image
+                image_path = os.path.join(folder_path, f"{reg_number}_{len(image_paths) + 1}.jpg")
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                cv2.imwrite(image_path, rgb_frame)
                 image_paths.append(image_path)
-                images_captured += 1
-                print(f"Captured image {images_captured}/{total_images}")
-                
-                # Show capture confirmation
-                confirmation_frame = frame.copy()
-                cv2.putText(confirmation_frame, f"Image {images_captured} captured!", (10, 70),
-                          cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                cv2.imshow("Capture Images", confirmation_frame)
-                
-                # Wait for the specified interval
-                time.sleep(interval)
-            else:
-                print(f"Failed to save image {images_captured + 1}")
-            
-            # Check for 'q' key to quit
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                print("Capture cancelled by user")
-                break
+                cv2.waitKey(1000)  # Wait 1 second between captures
         
         # Release camera and close window
         cap.release()
         cv2.destroyAllWindows()
         
-        if images_captured == total_images:
+        if len(image_paths) == total_images:
             return True, f"{total_images} images saved successfully to {folder_path}", image_paths
         else:
-            return False, f"Capture incomplete. Only {images_captured} images captured.", image_paths
+            return False, f"Capture incomplete. Only {len(image_paths)} images captured.", image_paths
         
     except Exception as e:
         # Ensure cleanup in case of error

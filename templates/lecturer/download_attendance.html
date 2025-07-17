@@ -50,6 +50,7 @@
                 <thead>
                     <tr id="attendanceHeaderRow">
                         <th>Registration No</th>
+                        <th>Name</th>
                         <!-- Date columns will be inserted here -->
                     </tr>
                 </thead>
@@ -106,19 +107,19 @@
                 .then(res => res.json())
                 .then(data => {
                     // Build header
-                    headerRow.innerHTML = '<th>Registration No</th>';
+                    headerRow.innerHTML = '<th>Registration No</th><th>Name</th>';
                     data.dates.forEach(date => {
                         headerRow.innerHTML += `<th>${date}</th>`;
                     });
 
                     // Build body
                     if (!data.students.length) {
-                        tbody.innerHTML = `<tr><td colspan="${data.dates.length + 1}" class="no-data">No attendance records found.</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="${data.dates.length + 2}" class="no-data">No attendance records found.</td></tr>`;
                         return;
                     }
                     tbody.innerHTML = '';
                     data.students.forEach(student => {
-                        let row = `<td>${student.registrationNumber}</td>`;
+                        let row = `<td>${student.registrationNumber}</td><td>${student.name || ''}</td>`;
                         data.dates.forEach(date => {
                             row += `<td>${student.attendance[date] || ''}</td>`;
                         });
@@ -129,7 +130,13 @@
 
         // Export button (implement backend for Excel export if needed)
         document.getElementById('exportBtn').addEventListener('click', function() {
-            alert('Export functionality not implemented yet.');
+            const course_id = document.getElementById('courseSelect').value;
+            const unit_id = document.getElementById('unitSelect').value;
+            if (!course_id || !unit_id) {
+                alert("Please select course and unit.");
+                return;
+            }
+            window.open(`/export_download_attendance_excel?course_id=${course_id}&unit_id=${unit_id}`, '_blank');
         });
     </script>
 </body>

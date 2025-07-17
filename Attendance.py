@@ -55,8 +55,11 @@ if not os.path.isdir(course_path):
 
 print(f"\nProcessing students in course folder: {course_path}")
 
+print("Please wait, loading and encoding student images. This may take a moment...")
+
 # Process only the selected course folder
 for reg_folder in os.listdir(course_path):
+    print(f"Encoding images for {reg_folder}...", flush=True)
     reg_path = os.path.join(course_path, reg_folder)
     if not os.path.isdir(reg_path):
         continue
@@ -100,7 +103,7 @@ for reg_folder in os.listdir(course_path):
 
         if len(face_encodings) > 0:
             student_encodings.append(face_encodings[0])
-            print(f"  Added encoding from {image_file}")
+            print(f"  Added encoding from {image_file}", flush=True)
         else:
             print(f"  Warning: No face found in {image_file}")
 
@@ -111,16 +114,19 @@ for reg_folder in os.listdir(course_path):
         known_face_names.append(reg_folder)
         processed_students.add(reg_folder)
         print(f"  Successfully processed {reg_folder} with {len(student_encodings)} valid encodings")
+    print(f"Finished encoding for {reg_folder}", flush=True)
 
 if not known_face_encodings:
     print(f"\nError: No valid face encodings found for course {selected_course}")
     sys.exit(1)
 
-print(f"\nEncoding complete:")
-print(f"- Course: {selected_course}")
-print(f"- Total students processed: {len(processed_students)}")
-print(f"- Total encodings loaded: {len(known_face_encodings)}")
-print(f"- Students with valid encodings: {', '.join(processed_students)}")
+print("Encoding complete:", flush=True)
+print(f"- Course: {selected_course}", flush=True)
+print(f"- Total students processed: {len(processed_students)}", flush=True)
+print(f"- Total encodings loaded: {len(known_face_encodings)}", flush=True)
+print(f"- Students with valid encodings: {', '.join(processed_students)}", flush=True)
+
+print("ENCODING_COMPLETE", flush=True)
 
 def mark_attendance(reg_number, unit_code, venue_id):
     """Mark attendance in the database if not already recorded for this session"""
@@ -322,31 +328,7 @@ while True:
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Prepare attendance data for CSV
-attendance_data = []
-for reg_no, name in zip(known_face_names, processed_students):
-    status = "Present" if reg_no in attended_students_session else "Absent"
-    attendance_data.append([reg_no, status])
 
-# Get course and unit names for filename
-course_name = selected_course.replace(" ", "_")
-unit_name = selected_unit.replace(" ", "_")
-date_str = datetime.now().strftime("%Y-%m-%d")
-
-# Create course-specific directory inside Attendance folder
-course_attendance_dir = os.path.join(ATTENDANCE_DIR, course_name)
-if not os.path.exists(course_attendance_dir):
-    os.makedirs(course_attendance_dir)
-
-csv_filename = os.path.join(course_attendance_dir, f"{unit_name}_{date_str}.csv")
-
-# Write to CSV
-with open(csv_filename, mode='w', newline='', encoding='utf-8') as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerow(["Registration Number", "Attendance"])
-    writer.writerows(attendance_data)
-
-print(f"Attendance saved to {csv_filename}")
 
 cap.release()
 cv2.destroyAllWindows()
