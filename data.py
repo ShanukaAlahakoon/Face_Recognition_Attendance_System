@@ -30,7 +30,7 @@ def capture_student_image(course, reg_number):
         
         # Try different camera indices
         cap = None
-        for camera_index in [1, 0]:
+        for camera_index in [1]:
             cap = cv2.VideoCapture(camera_index)
             if cap.isOpened():
                 print(f"Using camera {camera_index}")
@@ -53,6 +53,22 @@ def capture_student_image(course, reg_number):
         image_paths = []
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 
+        # Show camera window and wait for Enter key
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                continue
+            frame = cv2.flip(frame, 1)
+            cv2.putText(frame, "Press Enter to start capturing images...", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+            cv2.imshow("Capture Images", frame)
+            cv2.setWindowProperty("Capture Images", cv2.WND_PROP_TOPMOST, 1)
+            key = cv2.waitKey(1)
+            # 13 is Enter key for Windows
+            if key == 13:
+                break
+        # Clear the window before starting capture
+        cv2.destroyWindow("Capture Images")
+
         for direction in directions:
             # Countdown before capturing for this direction
             countdown_seconds = 3
@@ -61,15 +77,16 @@ def capture_student_image(course, reg_number):
                 if not ret:
                     break
                 frame = cv2.flip(frame, 1)
-                # Draw face rectangle
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                display_frame = frame.copy()
+                # Draw face rectangle for display only
+                gray = cv2.cvtColor(display_frame, cv2.COLOR_BGR2GRAY)
                 faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(100, 100))
                 for (x, y, w, h) in faces:
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                    cv2.rectangle(display_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
                     break
-                cv2.putText(frame, direction, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-                cv2.putText(frame, f"Starting in {i}...", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                cv2.imshow("Capture Images", frame)
+                cv2.putText(display_frame, direction, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                cv2.putText(display_frame, f"Starting in {i}...", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.imshow("Capture Images", display_frame)
                 cv2.setWindowProperty("Capture Images", cv2.WND_PROP_TOPMOST, 1)
                 cv2.waitKey(1000)  # Wait 1 second
 
@@ -79,18 +96,18 @@ def capture_student_image(course, reg_number):
                 if not ret:
                     break
                 frame = cv2.flip(frame, 1)
-                # Draw face rectangle
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                display_frame = frame.copy()
+                # Draw face rectangle for display only
+                gray = cv2.cvtColor(display_frame, cv2.COLOR_BGR2GRAY)
                 faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(100, 100))
                 for (x, y, w, h) in faces:
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                    cv2.rectangle(display_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
                     break
-                # Show direction and progress
-                cv2.putText(frame, direction, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-                cv2.putText(frame, f"Capturing image {img_num + 1}/{images_per_direction}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                cv2.imshow("Capture Images", frame)
+                cv2.putText(display_frame, direction, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                cv2.putText(display_frame, f"Capturing image {img_num + 1}/{images_per_direction}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.imshow("Capture Images", display_frame)
                 cv2.setWindowProperty("Capture Images", cv2.WND_PROP_TOPMOST, 1)
-                # Save image
+                # Save image (without overlays)
                 image_path = os.path.join(folder_path, f"{reg_number}_{len(image_paths) + 1}.jpg")
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 cv2.imwrite(image_path, rgb_frame)

@@ -111,7 +111,7 @@ def get_students():
                 s.email,
                 DATE_FORMAT(s.dateRegistered, '%Y-%m-%d') as dateRegistered
             FROM tblstudents s
-            ORDER BY s.dateRegistered DESC
+            ORDER BY s.registrationNumber ASC
         """)
         students = cursor.fetchall()
         cursor.close()

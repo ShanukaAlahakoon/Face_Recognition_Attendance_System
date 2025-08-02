@@ -20,16 +20,15 @@
           <div class="header-system">Face Recognition Attendance System</div>
         </div>
       </div>
-    <div class="sidebar">
+      <div class="sidebar">
         
         <ul><br>
             <li><a href="{{ url_for('lec_dashboard') }}">Take Attendance</a></li>
             <li><a href="{{ url_for('view_attendance') }}" class="active">View Attendance</a></li>
             <li><a href="{{ url_for('lec_student') }}">Students</a></li>
-            <li><a href="{{ url_for('download_attendance') }}">Download Attendance</a></li>
+            <li><a href="{{ url_for('download_attendance') }}" >Download Attendance</a></li>
         </ul>
         <div class="sidebar-footer">
-            <a href="#">Settings</a>
             <a href="{{ url_for('logout') }}">Logout</a>
         </div>
     </div>

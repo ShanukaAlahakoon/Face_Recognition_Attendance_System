@@ -25,23 +25,17 @@
       </div>
     </div>
     <div class="sidebar">
-    
+        
       <ul><br>
-        <li><a href="{{ url_for('lec_dashboard') }}" class="active">Take Attendance</a></li>
-        <li><a href="{{ url_for('view_attendance') }}">View Attendance</a></li>
-        <li><a href="{{ url_for('lec_student') }}">Students</a></li>
-        <li><a href="{{ url_for('download_attendance') }}" >Download Attendance</a></li>
-    </ul>
+          <li><a href="{{ url_for('lec_dashboard') }}" class="active">Take Attendance</a></li>
+          <li><a href="{{ url_for('view_attendance') }}">View Attendance</a></li>
+          <li><a href="{{ url_for('lec_student') }}">Students</a></li>
+          <li><a href="{{ url_for('download_attendance') }}" >Download Attendance</a></li>
+      </ul>
       <div class="sidebar-footer">
-        <a href="#" class="menu-item">
-          <i class="fas fa-cog"></i>
-          Settings
-        </a>
-        <a href="{{ url_for('logout') }}" class="menu-item">
-          <i class="fas fa-sign-out-alt"></i>
-          Logout
-        </a>
+          <a href="{{ url_for('logout') }}">Logout</a>
       </div>
+  </div>
     </div>
 
     <div class="main-content">
